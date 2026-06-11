@@ -1,0 +1,54 @@
+# ── Python ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# ── Virtual Environment ────────────────────────────────────
+venv/
+.venv/
+env/
+
+# ── IDE ─────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Node.js ─────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Database ────────────────────────────────────────────────
+*.db
+*.sqlite3
+
+# ── ML Pipeline ─────────────────────────────────────────────
+ml_pipeline/checkpoints/
+ml_pipeline/data/fine_tune_dataset.jsonl
+ml_pipeline/data/archive/
+*.pt
+*.bin
+*.safetensors
+
+# ── HuggingFace Cache ──────────────────────────────────────
+.cache/
+
+# ── Environment ─────────────────────────────────────────────
+.env
+.env.local
+.env.production
+
+# ── OS ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

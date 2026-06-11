@@ -1,0 +1,130 @@
+[
+  {
+    "query": "What is the capital of France?",
+    "answer": "The capital of France is Paris. It is the largest city in France and serves as the country's political, economic, and cultural center."
+  },
+  {
+    "query": "Explain photosynthesis in simple terms.",
+    "answer": "Photosynthesis is the process by which green plants use sunlight, water, and carbon dioxide to produce glucose (sugar) and oxygen. It occurs primarily in the leaves using chlorophyll pigment."
+  },
+  {
+    "query": "What is machine learning?",
+    "answer": "Machine learning is a subset of artificial intelligence where computers learn patterns from data without being explicitly programmed. It uses algorithms to build models that can make predictions or decisions based on new, unseen data."
+  },
+  {
+    "query": "How does gravity work?",
+    "answer": "Gravity is a fundamental force of nature that attracts objects with mass toward each other. According to Einstein's general relativity, massive objects curve the fabric of spacetime, and other objects follow these curves."
+  },
+  {
+    "query": "What is the difference between DNA and RNA?",
+    "answer": "DNA (deoxyribonucleic acid) is double-stranded, contains deoxyribose sugar, and uses thymine as a base. RNA (ribonucleic acid) is typically single-stranded, contains ribose sugar, and uses uracil instead of thymine. DNA stores genetic information, while RNA helps translate it into proteins."
+  },
+  {
+    "query": "What is an API?",
+    "answer": "An API (Application Programming Interface) is a set of rules and protocols that allows different software applications to communicate with each other. It defines the methods and data formats that programs can use to request and exchange information."
+  },
+  {
+    "query": "Explain the water cycle.",
+    "answer": "The water cycle describes the continuous movement of water on Earth. Water evaporates from surfaces into the atmosphere, condenses to form clouds, falls back as precipitation (rain or snow), and collects in bodies of water or infiltrates the ground, restarting the cycle."
+  },
+  {
+    "query": "What is blockchain technology?",
+    "answer": "Blockchain is a decentralized, distributed digital ledger that records transactions across many computers. Each block contains transaction data, a timestamp, and a cryptographic hash of the previous block, creating a secure and immutable chain of records."
+  },
+  {
+    "query": "How do neural networks work?",
+    "answer": "Neural networks are computing systems inspired by the human brain. They consist of layers of interconnected nodes (neurons) that process information. Data flows through input layers, gets transformed by hidden layers using weighted connections and activation functions, and produces output. They learn by adjusting weights through backpropagation."
+  },
+  {
+    "query": "What is the theory of relativity?",
+    "answer": "Einstein's theory of relativity consists of two parts: Special Relativity (1905) states that the laws of physics are the same for all non-accelerating observers and that the speed of light is constant. General Relativity (1915) extends this to include gravity as the curvature of spacetime caused by mass and energy."
+  },
+  {
+    "query": "What is a database?",
+    "answer": "A database is an organized collection of structured data stored electronically. It allows efficient storage, retrieval, and manipulation of data. Common types include relational databases (SQL) that use tables, and NoSQL databases that use flexible formats like documents, key-value pairs, or graphs."
+  },
+  {
+    "query": "What causes earthquakes?",
+    "answer": "Earthquakes are caused by the sudden release of energy in the Earth's crust, typically due to the movement of tectonic plates. When plates push against, pull apart, or slide past each other, stress builds up along fault lines. When the stress exceeds the strength of the rocks, it's released as seismic waves."
+  },
+  {
+    "query": "What is object-oriented programming?",
+    "answer": "Object-oriented programming (OOP) is a programming paradigm based on the concept of objects, which contain data (attributes) and code (methods). The four main principles are encapsulation (bundling data and methods), inheritance (creating new classes from existing ones), polymorphism (same interface for different types), and abstraction (hiding complex implementation details)."
+  },
+  {
+    "query": "How does the immune system work?",
+    "answer": "The immune system is the body's defense network against pathogens. It has two main components: innate immunity (general, immediate response with physical barriers and white blood cells) and adaptive immunity (specific, learned response using T-cells and B-cells that produce antibodies). It also develops immunological memory for faster future responses."
+  },
+  {
+    "query": "What is climate change?",
+    "answer": "Climate change refers to long-term shifts in global temperatures and weather patterns. While natural factors contribute, human activities—primarily burning fossil fuels, deforestation, and industrial processes—have been the dominant driver since the 1800s by increasing greenhouse gas concentrations in the atmosphere."
+  },
+  {
+    "query": "What is the difference between HTTP and HTTPS?",
+    "answer": "HTTP (Hypertext Transfer Protocol) transfers data between a web browser and server in plain text. HTTPS (HTTP Secure) adds SSL/TLS encryption to this communication, ensuring data privacy and integrity. HTTPS protects against eavesdropping and man-in-the-middle attacks, which is why it's essential for sensitive data like passwords and payment information."
+  },
+  {
+    "query": "What is evolution?",
+    "answer": "Evolution is the process of change in living organisms over generations through variations in heritable characteristics. It operates through mechanisms like natural selection (organisms with advantageous traits survive and reproduce more), genetic mutation, genetic drift, and gene flow. Over time, these processes lead to diversity and adaptation."
+  },
+  {
+    "query": "How does encryption work?",
+    "answer": "Encryption converts readable data (plaintext) into an unreadable format (ciphertext) using mathematical algorithms and keys. Symmetric encryption uses the same key for both encryption and decryption. Asymmetric encryption uses a public key for encryption and a private key for decryption. Only authorized parties with the correct key can decrypt and read the original data."
+  },
+  {
+    "query": "What is the solar system?",
+    "answer": "The solar system consists of the Sun and everything gravitationally bound to it: eight planets (Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune), dwarf planets (like Pluto), moons, asteroids, comets, and other small bodies. It formed approximately 4.6 billion years ago from a collapsing cloud of gas and dust."
+  },
+  {
+    "query": "What is a REST API?",
+    "answer": "A REST (Representational State Transfer) API is a web service interface that follows REST architectural principles. It uses standard HTTP methods (GET, POST, PUT, DELETE) to perform CRUD operations on resources identified by URLs. REST APIs are stateless, meaning each request contains all information needed, and typically exchange data in JSON format."
+  },
+  {
+    "query": "How does electricity work?",
+    "answer": "Electricity is the flow of electric charge, typically electrons, through a conductive material. It requires a voltage source (like a battery) to create a potential difference that drives the current. The relationship between voltage, current, and resistance is described by Ohm's Law (V = IR). Electricity powers devices by converting electrical energy into other forms like heat, light, or motion."
+  },
+  {
+    "query": "What is cloud computing?",
+    "answer": "Cloud computing delivers computing services—including servers, storage, databases, networking, software, and analytics—over the internet. Instead of owning physical infrastructure, users rent access to resources from cloud providers like AWS, Azure, or Google Cloud. The three main service models are IaaS (Infrastructure), PaaS (Platform), and SaaS (Software as a Service)."
+  },
+  {
+    "query": "What is the Pythagorean theorem?",
+    "answer": "The Pythagorean theorem states that in a right-angled triangle, the square of the hypotenuse (the longest side, opposite the right angle) equals the sum of the squares of the other two sides. Expressed as a² + b² = c², where c is the hypotenuse. It's fundamental in geometry, navigation, and engineering."
+  },
+  {
+    "query": "What is containerization in software?",
+    "answer": "Containerization packages an application and its dependencies into a standardized unit called a container. Unlike virtual machines, containers share the host OS kernel, making them lightweight and fast. Docker is the most popular container platform. Containers ensure consistency across environments—what works in development works identically in production."
+  },
+  {
+    "query": "What is natural language processing?",
+    "answer": "Natural Language Processing (NLP) is a branch of artificial intelligence that enables computers to understand, interpret, and generate human language. Key tasks include text classification, sentiment analysis, machine translation, named entity recognition, and text generation. Modern NLP relies heavily on transformer architectures and large language models."
+  },
+  {
+    "query": "How do vaccines work?",
+    "answer": "Vaccines work by training the immune system to recognize and fight specific pathogens without causing disease. They contain weakened, inactivated, or partial forms of a pathogen (or its genetic instructions). The immune system responds by producing antibodies and memory cells, so if exposed to the real pathogen later, the body can mount a rapid, effective defense."
+  },
+  {
+    "query": "What is version control?",
+    "answer": "Version control is a system that records changes to files over time, allowing you to recall specific versions later. Git is the most popular version control system. It enables multiple developers to collaborate, track modifications, create branches for features, merge changes, and revert to previous states if needed."
+  },
+  {
+    "query": "What is quantum computing?",
+    "answer": "Quantum computing uses quantum mechanical phenomena—superposition and entanglement—to process information. Unlike classical bits (0 or 1), quantum bits (qubits) can exist in multiple states simultaneously. This enables quantum computers to solve certain problems exponentially faster than classical computers, particularly in cryptography, optimization, and molecular simulation."
+  },
+  {
+    "query": "What are design patterns in software engineering?",
+    "answer": "Design patterns are reusable solutions to commonly occurring problems in software design. The Gang of Four categorized them into three types: Creational (e.g., Singleton, Factory), Structural (e.g., Adapter, Decorator), and Behavioral (e.g., Observer, Strategy). They provide tested development paradigms and improve code maintainability and communication among developers."
+  },
+  {
+    "query": "What is the greenhouse effect?",
+    "answer": "The greenhouse effect is a natural process where certain gases in Earth's atmosphere (carbon dioxide, methane, water vapor, nitrous oxide) trap heat from the sun, warming the planet's surface. Without it, Earth would be too cold for life. However, human activities have intensified this effect by increasing greenhouse gas concentrations, leading to global warming."
+  },
+  {
+    "query": "What is transfer learning in machine learning?",
+    "answer": "Transfer learning is a machine learning technique where a model trained on one task is repurposed for a different but related task. Instead of training from scratch, you take a pre-trained model and fine-tune it on your specific dataset. This saves time and computational resources, and often achieves better performance, especially when you have limited training data."
+  },
+  {
+    "query": "How does the internet work?",
+    "answer": "The internet is a global network of interconnected computers that communicate using standardized protocols (TCP/IP). Data is broken into packets, routed through multiple networks via routers, and reassembled at the destination. DNS translates domain names to IP addresses. The infrastructure includes undersea cables, satellites, data centers, and ISPs that provide end-user connectivity."
+  }
+]
