@@ -166,7 +166,7 @@ def run_training(feedback_collector: Optional[FeedbackCollector] = None) -> dict
             save_total_limit=2,
             fp16=(device == "cuda"),
             report_to="none",  # disable wandb etc.
-            max_seq_length=512,
+            max_length=512,
         )
 
         trainer = SFTTrainer(
