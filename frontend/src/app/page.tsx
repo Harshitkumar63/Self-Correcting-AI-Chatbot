@@ -48,17 +48,17 @@ export default function Dashboard() {
       <main className="mx-auto w-full max-w-[1600px] flex-1 p-6">
         <div className="grid h-[calc(100vh-120px)] grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Left Panel — Chat */}
-          <div className="lg:col-span-5 flex flex-col">
+          <div className="lg:col-span-5 flex flex-col min-h-0">
             <ChatInterface onNewMessage={handleNewMessage} />
           </div>
 
           {/* Vertical Separator (desktop only) */}
-          <div className="hidden lg:flex lg:col-span-0 items-center">
+          <div className="hidden lg:flex lg:col-span-1 items-center justify-center">
             <Separator orientation="vertical" className="bg-border/20 h-full" />
           </div>
 
           {/* Right Panel — Monitor + Analytics */}
-          <div className="lg:col-span-6 flex flex-col gap-6 overflow-hidden">
+          <div className="lg:col-span-6 flex flex-col gap-6 min-h-0 overflow-y-auto">
             <div className="flex-1 min-h-0">
               <EvaluationMonitor refreshTrigger={refreshTrigger} />
             </div>

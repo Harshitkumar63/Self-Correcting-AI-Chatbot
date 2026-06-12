@@ -84,7 +84,7 @@ export default function EvaluationMonitor({
       </CardHeader>
 
       <CardContent className="flex-1 p-0 overflow-hidden">
-        <ScrollArea className="h-[400px]">
+        <ScrollArea className="h-[300px]">
           {logs.length === 0 && !loading ? (
             <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
               <div className="mb-3 text-4xl opacity-50">📋</div>

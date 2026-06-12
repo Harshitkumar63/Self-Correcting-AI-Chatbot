@@ -160,6 +160,18 @@ export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
                       </span>
                     </div>
                   )}
+
+                  {/* Show correct answer for flagged responses */}
+                  {msg.role === "assistant" && msg.status === "Flagged" && msg.groundTruth && (
+                    <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+                      <p className="text-xs font-semibold text-emerald-400 mb-1">
+                        ✅ Expected Answer:
+                      </p>
+                      <p className="text-xs text-emerald-300/80 leading-relaxed">
+                        {msg.groundTruth}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
