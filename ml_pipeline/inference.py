@@ -76,6 +76,7 @@ class InferenceEngine:
         max_new_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         top_p: Optional[float] = None,
+        system_prompt: Optional[str] = None,
     ) -> str:
         """
         Generate a response for the given user prompt.
@@ -85,6 +86,7 @@ class InferenceEngine:
             max_new_tokens: Override default max tokens.
             temperature: Override default temperature.
             top_p: Override default top_p.
+            system_prompt: Override the default system prompt.
 
         Returns:
             The model's generated text response.
@@ -95,15 +97,14 @@ class InferenceEngine:
         _temperature = temperature or config.temperature
         _top_p = top_p or config.top_p
 
+        _system = system_prompt or (
+            "You are a helpful, accurate, and concise assistant. "
+            "Answer the user's question directly and factually."
+        )
+
         # Format as ChatML (Qwen2.5-Instruct expected format)
         messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are a helpful, accurate, and concise assistant. "
-                    "Answer the user's question directly and factually."
-                ),
-            },
+            {"role": "system", "content": _system},
             {"role": "user", "content": prompt},
         ]
 

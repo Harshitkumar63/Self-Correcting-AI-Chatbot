@@ -40,6 +40,24 @@ class PipelineConfig:
         default_factory=lambda: BASE_DIR / "ground_truth.json"
     )
 
+    # ── Hybrid Evaluator ───────────────────────────────────────
+    cosine_weight: float = 0.6       # weight for cosine similarity in hybrid score
+    llm_judge_weight: float = 0.4    # weight for LLM-as-a-Judge in hybrid score
+    llm_judge_temperature: float = 0.1  # low temp for deterministic judging
+
+    # ── Teacher Correction ─────────────────────────────────────
+    teacher_model_id: str = "Qwen/Qwen2.5-0.5B-Instruct"  # reuses inference model
+    gt_match_threshold: float = 0.50  # min cosine sim to consider GT a valid match
+
+    # ── Curation Queue ─────────────────────────────────────────
+    curation_queue_path: Path = field(
+        default_factory=lambda: BASE_DIR / "data" / "curation_queue.jsonl"
+    )
+    auto_approve_threshold: float = 0.85  # above this hybrid score, auto-approve
+
+    # ── Dataset Monitor ────────────────────────────────────────
+    dataset_monitor_interval: int = 30  # seconds between background checks
+
     # ── LoRA Training ──────────────────────────────────────────
     lora_r: int = 8
     lora_alpha: int = 32

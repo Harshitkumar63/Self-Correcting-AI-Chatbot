@@ -15,10 +15,18 @@ export interface ChatResponse {
   ground_truth: string;
   matched_query: string;
   feedback_status: {
+    curation_item_id?: string;
+    queue_size?: number;
     sample_count: number;
     threshold: number;
     should_trigger: boolean;
   } | null;
+  // Hybrid evaluator fields
+  hybrid_score: number;
+  llm_judge_score: number;
+  hallucination_detected: boolean;
+  completeness: number;
+  teacher_correction: string | null;
 }
 
 export interface LogEntry {
@@ -57,6 +65,46 @@ export interface TuningResponse {
   threshold: number;
   training_triggered: boolean;
   details?: Record<string, unknown>;
+}
+
+// ── Curation Types ─────────────────────────────────────────
+
+export interface CurationItem {
+  id: string;
+  query: string;
+  bad_response: string;
+  teacher_correction: string;
+  eval_score: number;
+  hybrid_score: number;
+  hallucination_detected: boolean;
+  completeness: number;
+  llm_judge_score: number;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  reviewed_at?: string;
+}
+
+export interface CurationQueueResponse {
+  items: CurationItem[];
+  stats: {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
+}
+
+export interface CurationActionResponse {
+  success: boolean;
+  message: string;
+  item: CurationItem | null;
+}
+
+export interface CurationStatsResponse {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
 }
 
 // ── API Functions ──────────────────────────────────────────
@@ -117,6 +165,88 @@ export async function fetchTuningStatus(): Promise<TuningResponse> {
 
   if (!res.ok) {
     throw new Error(`Tuning status error: ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+// ── Curation API Functions ─────────────────────────────────
+
+export async function fetchCurationQueue(): Promise<CurationQueueResponse> {
+  const res = await fetch(`${API_BASE}/api/curation/queue`);
+
+  if (!res.ok) {
+    throw new Error(`Curation queue error: ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function fetchAllCurationItems(): Promise<CurationQueueResponse> {
+  const res = await fetch(`${API_BASE}/api/curation/all`);
+
+  if (!res.ok) {
+    throw new Error(`Curation all error: ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function approveCurationItem(
+  itemId: string,
+  editedCorrection?: string
+): Promise<CurationActionResponse> {
+  const res = await fetch(`${API_BASE}/api/curation/approve/${itemId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      edited_correction: editedCorrection || null,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Approve error: ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function rejectCurationItem(
+  itemId: string
+): Promise<CurationActionResponse> {
+  const res = await fetch(`${API_BASE}/api/curation/reject/${itemId}`, {
+    method: "POST",
+  });
+
+  if (!res.ok) {
+    throw new Error(`Reject error: ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function editCurationItem(
+  itemId: string,
+  editedCorrection: string
+): Promise<CurationActionResponse> {
+  const res = await fetch(`${API_BASE}/api/curation/edit/${itemId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ edited_correction: editedCorrection }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Edit error: ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function fetchCurationStats(): Promise<CurationStatsResponse> {
+  const res = await fetch(`${API_BASE}/api/curation/stats`);
+
+  if (!res.ok) {
+    throw new Error(`Curation stats error: ${res.status} ${res.statusText}`);
   }
 
   return res.json();

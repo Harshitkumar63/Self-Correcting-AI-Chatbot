@@ -48,13 +48,11 @@ export default function FineTuningPanel({
     }
   }, []);
 
-  // Load on mount + refresh trigger
   useEffect(() => {
     loadStats();
     loadTrainingStatus();
   }, [loadStats, loadTrainingStatus, refreshTrigger]);
 
-  // Auto-refresh every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       loadStats();
@@ -119,36 +117,36 @@ export default function FineTuningPanel({
 
   return (
     <Card className="gradient-card border-border/50">
-      <CardHeader className="border-b border-border/30 pb-4">
+      <CardHeader className="border-b border-border/30 px-5 py-3">
         <div className="flex items-center gap-3">
-          <div className="gradient-danger flex h-9 w-9 items-center justify-center rounded-lg text-sm">
+          <div className="gradient-danger flex h-8 w-8 items-center justify-center rounded-lg text-sm">
             🔧
           </div>
           <div>
-            <CardTitle className="text-lg">Fine-Tuning Analytics</CardTitle>
-            <p className="text-xs text-muted-foreground">
+            <CardTitle className="text-base">Fine-Tuning Analytics</CardTitle>
+            <p className="text-[11px] text-muted-foreground">
               LoRA training pipeline status
             </p>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6 pt-6">
+      <CardContent className="space-y-4 pt-4 px-5 pb-5">
         {/* ── Training Queue ───────────────────────────── */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground/80">
+            <span className="text-xs font-medium text-foreground/80">
               Training Queue
             </span>
-            <span className="text-xs tabular-nums text-muted-foreground">
+            <span className="text-[11px] tabular-nums text-muted-foreground">
               {queueSize}/{threshold} samples
             </span>
           </div>
           <Progress
             value={progress}
-            className="h-3 bg-secondary/60"
+            className="h-2.5 bg-secondary/60"
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             {threshold - queueSize > 0
               ? `${threshold - queueSize} more flagged responses needed to auto-trigger`
               : "🔔 Threshold reached — ready to fine-tune!"}
@@ -159,9 +157,9 @@ export default function FineTuningPanel({
 
         {/* ── Stats Grid ───────────────────────────────── */}
         {stats && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-4 gap-2">
             <StatCard
-              label="Total Queries"
+              label="Total"
               value={stats.total_queries.toString()}
               icon="📨"
             />
@@ -193,13 +191,13 @@ export default function FineTuningPanel({
         <Separator className="bg-border/30" />
 
         {/* ── Training Status ──────────────────────────── */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground/80">
+            <span className="text-xs font-medium text-foreground/80">
               Training Status
             </span>
             <Badge
-              className={`text-xs ${currentStatus.color} ${currentStatus.bgColor} border-0`}
+              className={`text-[10px] ${currentStatus.color} ${currentStatus.bgColor} border-0`}
             >
               {trainingStatus === "training" && (
                 <span className="mr-1 inline-block h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
@@ -209,7 +207,7 @@ export default function FineTuningPanel({
           </div>
 
           {trainingMessage && (
-            <p className="text-xs text-muted-foreground bg-secondary/30 rounded-lg p-3 leading-relaxed">
+            <p className="text-[11px] text-muted-foreground bg-secondary/30 rounded-lg p-2.5 leading-relaxed">
               {trainingMessage}
             </p>
           )}
@@ -223,7 +221,7 @@ export default function FineTuningPanel({
               trainingStatus === "training" ||
               trainingStatus === "preparing"
             }
-            className="w-full gradient-primary hover:opacity-90 transition-opacity"
+            className="w-full gradient-primary hover:opacity-90 transition-opacity text-xs h-9"
           >
             {isTriggering ? (
               <span className="flex items-center gap-2">
@@ -258,12 +256,12 @@ function StatCard({
   valueColor?: string;
 }) {
   return (
-    <div className="rounded-xl bg-secondary/30 border border-border/20 p-3 transition-colors hover:bg-secondary/50">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-sm">{icon}</span>
-        <span className="text-xs text-muted-foreground">{label}</span>
+    <div className="rounded-lg bg-secondary/30 border border-border/20 p-2.5 transition-colors hover:bg-secondary/50">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="text-xs">{icon}</span>
+        <span className="text-[10px] text-muted-foreground">{label}</span>
       </div>
-      <p className={`text-xl font-bold tabular-nums ${valueColor}`}>{value}</p>
+      <p className={`text-lg font-bold tabular-nums ${valueColor}`}>{value}</p>
     </div>
   );
 }

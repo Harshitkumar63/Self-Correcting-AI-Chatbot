@@ -2,7 +2,7 @@
 FastAPI Main Application — Self-Improving LLM Pipeline
 
 Entry point that wires together CORS, database lifecycle,
-and all API routers.
+background monitor, and all API routers.
 """
 
 import logging
@@ -19,7 +19,8 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from app.database import init_db, close_db
-from app.routers import chat, logs, tuning
+from app.routers import chat, logs, tuning, curation
+from app.services.dataset_monitor import get_dataset_monitor
 
 # ── Logging ─────────────────────────────────────────────────
 
@@ -39,7 +40,17 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Self-Improving LLM Pipeline backend...")
     await init_db()
     logger.info("✅ Database initialized.")
+
+    # Start the background dataset monitor
+    monitor = get_dataset_monitor()
+    await monitor.start()
+    logger.info("✅ Dataset monitor started.")
+
     yield
+
+    # Shutdown
+    await monitor.stop()
+    logger.info("🛑 Dataset monitor stopped.")
     await close_db()
     logger.info("🛑 Backend shutdown complete.")
 
@@ -49,11 +60,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Self-Improving LLM Pipeline",
     description=(
-        "Automated feedback loop system where LLM outputs are evaluated "
-        "using semantic similarity and low-quality responses are collected "
-        "for iterative LoRA fine-tuning."
+        "Production-grade self-improving pipeline with hybrid evaluation "
+        "(cosine + LLM-as-a-Judge), teacher-correction pattern, "
+        "human-in-the-loop curation, and automated LoRA fine-tuning."
     ),
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -75,6 +86,7 @@ app.add_middleware(
 app.include_router(chat.router)
 app.include_router(logs.router)
 app.include_router(tuning.router)
+app.include_router(curation.router)
 
 
 # ── Health Check ────────────────────────────────────────────
@@ -85,7 +97,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "Self-Improving LLM Pipeline",
-        "version": "1.0.0",
+        "version": "2.0.0",
     }
 
 
@@ -97,11 +109,15 @@ async def api_health():
     ml = get_ml_service()
     feedback = ml.get_feedback_status()
     training = ml.get_training_status()
+    curation_stats = ml.get_curation_stats()
+    monitor = get_dataset_monitor()
 
     return {
         "status": "healthy",
         "pipeline": {
             "feedback_queue": feedback,
             "training": training,
+            "curation": curation_stats,
+            "dataset_monitor": monitor.get_status(),
         },
     }

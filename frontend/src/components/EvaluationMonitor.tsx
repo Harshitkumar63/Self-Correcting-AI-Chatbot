@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -18,7 +17,7 @@ import { fetchLogs, LogEntry } from "@/lib/api";
 // ── Props ──────────────────────────────────────────────────
 
 interface EvaluationMonitorProps {
-  refreshTrigger?: number; // increment to force refresh
+  refreshTrigger?: number;
 }
 
 // ── Component ──────────────────────────────────────────────
@@ -47,47 +46,45 @@ export default function EvaluationMonitor({
     }
   }, []);
 
-  // Load on mount and when refreshTrigger changes
   useEffect(() => {
     loadLogs(1);
   }, [loadLogs, refreshTrigger]);
 
-  // Auto-refresh every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => loadLogs(page), 5000);
     return () => clearInterval(interval);
   }, [loadLogs, page]);
 
-  const truncate = (text: string, maxLen: number = 60) =>
+  const truncate = (text: string, maxLen: number = 50) =>
     text.length > maxLen ? text.slice(0, maxLen) + "…" : text;
 
   return (
-    <Card className="gradient-card border-border/50 flex flex-col overflow-hidden">
-      <CardHeader className="border-b border-border/30 pb-4">
+    <Card className="gradient-card border-border/50 flex flex-col h-full overflow-hidden">
+      <CardHeader className="border-b border-border/30 px-5 py-3 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="gradient-success flex h-9 w-9 items-center justify-center rounded-lg text-sm">
+            <div className="gradient-success flex h-8 w-8 items-center justify-center rounded-lg text-sm">
               📊
             </div>
             <div>
-              <CardTitle className="text-lg">Evaluation Monitor</CardTitle>
-              <p className="text-xs text-muted-foreground">
+              <CardTitle className="text-base">Evaluation Monitor</CardTitle>
+              <p className="text-[11px] text-muted-foreground">
                 Real-time quality metrics — {total} interactions logged
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-muted-foreground">Live</span>
+            <span className="text-[11px] text-muted-foreground">Live</span>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 p-0 overflow-hidden">
-        <ScrollArea className="h-[300px]">
+      <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-auto">
           {logs.length === 0 && !loading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
-              <div className="mb-3 text-4xl opacity-50">📋</div>
+            <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
+              <div className="mb-3 text-3xl opacity-50">📋</div>
               <p className="text-sm text-muted-foreground">
                 No evaluations yet. Start chatting to see results here.
               </p>
@@ -96,16 +93,16 @@ export default function EvaluationMonitor({
             <Table>
               <TableHeader>
                 <TableRow className="border-border/30 hover:bg-transparent">
-                  <TableHead className="text-xs font-semibold text-muted-foreground w-[30%]">
+                  <TableHead className="text-[11px] font-semibold text-muted-foreground w-[30%] px-3">
                     User Query
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-muted-foreground w-[35%]">
+                  <TableHead className="text-[11px] font-semibold text-muted-foreground w-[38%] px-3">
                     LLM Output
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-muted-foreground text-center w-[15%]">
+                  <TableHead className="text-[11px] font-semibold text-muted-foreground text-center w-[14%] px-2">
                     Score
                   </TableHead>
-                  <TableHead className="text-xs font-semibold text-muted-foreground text-center w-[20%]">
+                  <TableHead className="text-[11px] font-semibold text-muted-foreground text-center w-[18%] px-2">
                     Status
                   </TableHead>
                 </TableRow>
@@ -125,18 +122,18 @@ export default function EvaluationMonitor({
                         className="border-border/20 hover:bg-secondary/30 transition-colors animate-fade-in"
                         style={{ animationDelay: `${idx * 30}ms` }}
                       >
-                        <TableCell className="text-xs text-foreground/80 py-3">
+                        <TableCell className="text-[11px] text-foreground/80 py-2.5 px-3">
                           {truncate(log.user_query)}
                         </TableCell>
-                        <TableCell className="text-xs text-foreground/70 py-3">
-                          {truncate(log.llm_response, 80)}
+                        <TableCell className="text-[11px] text-foreground/70 py-2.5 px-3">
+                          {truncate(log.llm_response, 65)}
                         </TableCell>
-                        <TableCell className="text-center py-3">
+                        <TableCell className="text-center py-2.5 px-2">
                           <ScoreIndicator score={log.similarity_score} />
                         </TableCell>
-                        <TableCell className="text-center py-3">
+                        <TableCell className="text-center py-2.5 px-2">
                           <Badge
-                            className={`text-xs font-medium ${
+                            className={`text-[10px] font-medium ${
                               log.evaluation_status === "Passed"
                                 ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
                                 : "bg-red-500/15 text-red-400 border-red-500/25"
@@ -151,12 +148,12 @@ export default function EvaluationMonitor({
               </TableBody>
             </Table>
           )}
-        </ScrollArea>
+        </div>
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-border/30 px-4 py-3">
-            <span className="text-xs text-muted-foreground">
+          <div className="flex items-center justify-between border-t border-border/30 px-4 py-2 flex-shrink-0">
+            <span className="text-[11px] text-muted-foreground">
               Page {page} of {totalPages}
             </span>
             <div className="flex gap-2">
@@ -165,7 +162,7 @@ export default function EvaluationMonitor({
                 size="sm"
                 onClick={() => loadLogs(page - 1)}
                 disabled={page <= 1}
-                className="text-xs h-7"
+                className="text-[11px] h-7"
               >
                 Previous
               </Button>
@@ -174,7 +171,7 @@ export default function EvaluationMonitor({
                 size="sm"
                 onClick={() => loadLogs(page + 1)}
                 disabled={page >= totalPages}
-                className="text-xs h-7"
+                className="text-[11px] h-7"
               >
                 Next
               </Button>
@@ -199,10 +196,10 @@ function ScoreIndicator({ score }: { score: number }) {
 
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span className={`text-sm font-bold tabular-nums ${color}`}>
+      <span className={`text-[12px] font-bold tabular-nums ${color}`}>
         {pct}%
       </span>
-      <div className="h-1 w-12 rounded-full bg-secondary overflow-hidden">
+      <div className="h-1 w-10 rounded-full bg-secondary overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
             score >= 0.7

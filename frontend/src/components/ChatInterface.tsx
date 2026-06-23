@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { sendMessage, ChatResponse } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────
@@ -15,8 +15,13 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   score?: number;
+  hybridScore?: number;
+  llmJudgeScore?: number;
   status?: "Passed" | "Flagged";
   groundTruth?: string;
+  teacherCorrection?: string;
+  hallucinationDetected?: boolean;
+  completeness?: number;
   timestamp: Date;
 }
 
@@ -63,8 +68,13 @@ export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
         role: "assistant",
         content: data.response,
         score: data.similarity_score,
+        hybridScore: data.hybrid_score,
+        llmJudgeScore: data.llm_judge_score,
         status: data.evaluation_status,
         groundTruth: data.ground_truth,
+        teacherCorrection: data.teacher_correction ?? undefined,
+        hallucinationDetected: data.hallucination_detected,
+        completeness: data.completeness,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
@@ -106,9 +116,9 @@ export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-1 flex-col gap-0 p-0 overflow-hidden">
-        {/* Messages area */}
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <CardContent className="flex flex-1 flex-col p-0 min-h-0">
+        {/* Messages area — native scroll */}
+        <div className="flex-1 min-h-0 overflow-y-auto p-4" ref={scrollRef}>
           <div className="space-y-4">
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
@@ -118,7 +128,7 @@ export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
                 </h3>
                 <p className="mt-1 max-w-sm text-sm text-muted-foreground">
                   Send a message to get an LLM response. Each answer is
-                  automatically evaluated for quality using semantic similarity.
+                  evaluated using hybrid scoring (cosine + LLM judge).
                 </p>
               </div>
             )}
@@ -142,9 +152,10 @@ export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
                     {msg.content}
                   </p>
 
-                  {/* Evaluation badge for assistant messages */}
-                  {msg.role === "assistant" && msg.score !== undefined && (
-                    <div className="mt-2 flex items-center gap-2 border-t border-white/10 pt-2">
+                  {/* Evaluation badges for assistant messages */}
+                  {msg.role === "assistant" && msg.hybridScore !== undefined && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/10 pt-2">
+                      {/* Status badge */}
                       <Badge
                         className={`text-xs font-medium ${
                           msg.status === "Passed"
@@ -155,14 +166,49 @@ export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
                       >
                         {msg.status === "Passed" ? "✓" : "⚠"} {msg.status}
                       </Badge>
+
+                      {/* Hybrid score */}
                       <span className="text-xs text-muted-foreground">
-                        Score: {(msg.score * 100).toFixed(1)}%
+                        Hybrid: <span className="font-semibold tabular-nums">
+                          {((msg.hybridScore ?? 0) * 100).toFixed(1)}%
+                        </span>
                       </span>
+
+                      {/* Cosine score */}
+                      <span className="text-[10px] text-muted-foreground/70">
+                        cos:{((msg.score ?? 0) * 100).toFixed(0)}%
+                      </span>
+
+                      {/* Hallucination indicator */}
+                      {msg.hallucinationDetected && (
+                        <Badge className="text-[10px] bg-red-500/15 text-red-400 border-red-500/25 px-1.5 py-0" variant="outline">
+                          ⚠ Hallucination
+                        </Badge>
+                      )}
+
+                      {/* Completeness stars */}
+                      {msg.completeness !== undefined && (
+                        <span className="text-[10px] text-amber-400/80" title={`Completeness: ${msg.completeness}/5`}>
+                          {"★".repeat(msg.completeness)}{"☆".repeat(5 - msg.completeness)}
+                        </span>
+                      )}
                     </div>
                   )}
 
-                  {/* Show correct answer for flagged responses */}
-                  {msg.role === "assistant" && msg.status === "Flagged" && msg.groundTruth && (
+                  {/* Show teacher correction for flagged responses */}
+                  {msg.role === "assistant" && msg.status === "Flagged" && msg.teacherCorrection && (
+                    <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
+                      <p className="text-xs font-semibold text-emerald-400 mb-1">
+                        🍎 Teacher Correction:
+                      </p>
+                      <p className="text-xs text-emerald-300/80 leading-relaxed">
+                        {msg.teacherCorrection}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Fallback: show ground truth if no teacher correction available */}
+                  {msg.role === "assistant" && msg.status === "Flagged" && !msg.teacherCorrection && msg.groundTruth && (
                     <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
                       <p className="text-xs font-semibold text-emerald-400 mb-1">
                         ✅ Expected Answer:
@@ -189,7 +235,7 @@ export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Input area */}
         <div className="border-t border-border/30 p-4">

@@ -2,7 +2,8 @@
 Chat Router — POST /api/chat
 
 Receives user queries, processes them through the ML pipeline
-(inference → evaluation → feedback), saves the log, and returns results.
+(inference → hybrid evaluation → teacher correction → curation),
+saves the log, and returns results.
 """
 
 import logging
@@ -27,13 +28,13 @@ async def chat(
     ml: MLService = Depends(get_ml_service),
 ):
     """
-    Process a user query through the full ML pipeline.
+    Process a user query through the full self-improving pipeline.
 
     1. Forward to inference engine for LLM response.
-    2. Evaluate response quality via semantic similarity.
-    3. If flagged, collect feedback for future training.
+    2. Hybrid evaluation (cosine similarity + LLM-as-a-Judge).
+    3. If flagged, generate teacher correction and add to curation queue.
     4. Save interaction log to database.
-    5. Return response with evaluation metrics.
+    5. Return response with all evaluation metrics.
     """
     # Run the ML pipeline
     result = await ml.process_query(request.query)
@@ -51,9 +52,11 @@ async def chat(
     await db.commit()
 
     logger.info(
-        "Chat processed: score=%.4f, status=%s",
+        "Chat processed: cosine=%.4f hybrid=%.4f status=%s hallucination=%s",
         result["similarity_score"],
+        result["hybrid_score"],
         result["evaluation_status"],
+        result["hallucination_detected"],
     )
 
     return ChatResponse(
@@ -63,4 +66,10 @@ async def chat(
         ground_truth=result["ground_truth"],
         matched_query=result["matched_query"],
         feedback_status=result.get("feedback_status"),
+        # New hybrid evaluator fields
+        hybrid_score=result["hybrid_score"],
+        llm_judge_score=result["llm_judge_score"],
+        hallucination_detected=result["hallucination_detected"],
+        completeness=result["completeness"],
+        teacher_correction=result.get("teacher_correction"),
     )

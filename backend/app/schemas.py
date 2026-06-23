@@ -29,6 +29,13 @@ class ChatResponse(BaseModel):
     matched_query: str
     feedback_status: Optional[dict] = None  # feedback collection info
 
+    # ── New hybrid evaluator fields ────────────────────────
+    hybrid_score: float = 0.0
+    llm_judge_score: float = 0.0
+    hallucination_detected: bool = False
+    completeness: int = 3
+    teacher_correction: Optional[str] = None
+
 
 # ── Logs ────────────────────────────────────────────────────
 
@@ -83,3 +90,55 @@ class TuningResponse(BaseModel):
     threshold: int
     training_triggered: bool
     details: Optional[dict] = None
+
+
+# ── Curation Queue ──────────────────────────────────────────
+
+
+class CurationItem(BaseModel):
+    """A single item in the curation queue."""
+
+    id: str
+    query: str
+    bad_response: str
+    teacher_correction: str
+    eval_score: float
+    hybrid_score: float
+    hallucination_detected: bool
+    completeness: int
+    llm_judge_score: float
+    status: str  # "pending" | "approved" | "rejected"
+    created_at: str
+    reviewed_at: Optional[str] = None
+
+
+class CurationQueueResponse(BaseModel):
+    """Response containing the curation queue items and stats."""
+
+    items: list[CurationItem]
+    stats: dict
+
+
+class CurationActionRequest(BaseModel):
+    """Request body for approve/edit curation actions."""
+
+    edited_correction: Optional[str] = Field(
+        None, description="Edited correction text (optional, for edit-and-approve)"
+    )
+
+
+class CurationActionResponse(BaseModel):
+    """Response from a curation action."""
+
+    success: bool
+    message: str
+    item: Optional[CurationItem] = None
+
+
+class CurationStatsResponse(BaseModel):
+    """Curation queue statistics."""
+
+    total: int
+    pending: int
+    approved: int
+    rejected: int
