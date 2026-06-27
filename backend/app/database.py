@@ -1,9 +1,11 @@
 """
-Async SQLAlchemy database setup for SQLite.
+Async SQLAlchemy database setup.
 
+Supports SQLite (default) and PostgreSQL via DATABASE_URL env var.
 Uses aiosqlite as the async driver with SQLAlchemy 2.0+ patterns.
 """
 
+import os
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import (
@@ -14,14 +16,22 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase
 
 
-# Database file lives in the backend directory
+# Database URL from environment or default to SQLite
 DB_PATH = Path(__file__).resolve().parent.parent / "app.db"
-DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    f"sqlite+aiosqlite:///{DB_PATH}",
+)
+
+# SQLite-specific connection args
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
 
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
-    connect_args={"check_same_thread": False},
+    connect_args=connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(

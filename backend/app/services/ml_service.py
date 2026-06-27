@@ -4,6 +4,11 @@ ML Service — Bridge between FastAPI backend and the ML pipeline.
 Provides a singleton interface that lazily initializes the ML modules
 and orchestrates the full self-improving pipeline:
   query → inference → hybrid evaluation → teacher correction → curation queue
+
+Now supports:
+  - Multi-turn conversation context
+  - Token-by-token streaming
+  - Direct evaluation access for SSE endpoints
 """
 
 import logging
@@ -22,7 +27,7 @@ logger = logging.getLogger(__name__)
 class MLService:
     """
     Orchestrates the full self-improving ML pipeline for each user query:
-    1. Generate response via InferenceEngine
+    1. Generate response via InferenceEngine (with optional conversation history)
     2. Evaluate response via Hybrid Evaluator (cosine + LLM judge)
     3. If flagged: generate teacher correction
     4. Route to curation queue for admin review
@@ -50,19 +55,21 @@ class MLService:
             cls._instance = cls()
         return cls._instance
 
-    async def process_query(self, query: str) -> dict:
+    async def process_query(self, query: str, history: list[dict] = None) -> dict:
         """
         Full pipeline: generate → hybrid evaluate → teacher correct → queue.
 
         Args:
             query: The user's input query.
+            history: Optional conversation history for multi-turn context.
+                     List of {"role": "user/assistant", "content": "..."} dicts.
 
         Returns:
             Dict with response, all evaluation metrics, and teacher correction.
         """
-        # Step 1: Generate LLM response
+        # Step 1: Generate LLM response with conversation context
         logger.info("Processing query: %.60s...", query)
-        response = self._inference.generate(query)
+        response = self._inference.generate(query, history=history)
 
         # Step 2: Hybrid evaluation (cosine + LLM judge)
         eval_result: EvalResult = self._evaluation.evaluate(query, response)
@@ -107,13 +114,35 @@ class MLService:
             "ground_truth": eval_result.ground_truth_answer,
             "matched_query": eval_result.matched_query,
             "feedback_status": feedback_status,
-            # New hybrid evaluator fields
+            # Hybrid evaluator fields
             "hybrid_score": eval_result.hybrid_score,
             "llm_judge_score": eval_result.llm_judge_score,
             "hallucination_detected": eval_result.hallucination_detected,
             "completeness": eval_result.completeness,
             "teacher_correction": teacher_correction,
         }
+
+    # ── Streaming ──────────────────────────────────────────
+
+    def generate_stream(self, query: str, history: list[dict] = None):
+        """
+        Yield tokens one-by-one for SSE streaming.
+
+        Args:
+            query: The user's input query.
+            history: Optional conversation history.
+
+        Yields:
+            String tokens as they are generated.
+        """
+        return self._inference.generate_stream(query, history=history)
+
+    def evaluate_response(self, query: str, response: str) -> EvalResult:
+        """
+        Evaluate a response directly (used by streaming endpoint after
+        all tokens have been collected).
+        """
+        return self._evaluation.evaluate(query, response)
 
     # ── Feedback / Training ─────────────────────────────────
 

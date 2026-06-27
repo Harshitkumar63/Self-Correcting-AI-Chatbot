@@ -1,6 +1,7 @@
 """
 Curation Router — Admin curation queue API endpoints.
 
+All endpoints require admin role authentication.
 Provides endpoints for the human-in-the-loop curation workflow:
   - View pending items
   - Approve (with optional edits)
@@ -12,6 +13,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.models import User
 from app.schemas import (
     CurationItem,
     CurationQueueResponse,
@@ -19,21 +21,21 @@ from app.schemas import (
     CurationActionResponse,
     CurationStatsResponse,
 )
+from app.services.auth_service import require_admin
 from app.services.ml_service import MLService, get_ml_service
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/curation", tags=["curation"])
+router = APIRouter(prefix="/api/v1/curation", tags=["curation"])
 
 
 @router.get("/queue", response_model=CurationQueueResponse)
 async def get_curation_queue(
     ml: MLService = Depends(get_ml_service),
+    admin: User = Depends(require_admin),
 ):
     """
     Get all pending curation items for admin review.
-
-    Returns items awaiting approval along with queue statistics.
     """
     data = ml.get_curation_queue()
     return CurationQueueResponse(
@@ -45,11 +47,10 @@ async def get_curation_queue(
 @router.get("/all", response_model=CurationQueueResponse)
 async def get_all_curation_items(
     ml: MLService = Depends(get_ml_service),
+    admin: User = Depends(require_admin),
 ):
     """
     Get all curation items (pending, approved, rejected).
-
-    Useful for viewing full curation history.
     """
     data = ml.get_curation_all()
     return CurationQueueResponse(
@@ -63,19 +64,17 @@ async def approve_item(
     item_id: str,
     body: CurationActionRequest = CurationActionRequest(),
     ml: MLService = Depends(get_ml_service),
+    admin: User = Depends(require_admin),
 ):
     """
-    Approve a curation item and append it to the training dataset.
-
-    Optionally provide an edited correction to override the
-    teacher-generated one before it enters the training set.
+    Approve a curation item and append it to the training dataset. Admin only.
     """
     result = ml.approve_curation_item(item_id, body.edited_correction)
 
     if result is None:
         raise HTTPException(status_code=404, detail=f"Curation item '{item_id}' not found.")
 
-    logger.info("Curation item approved via API: id=%s", item_id)
+    logger.info("Curation item approved by %s: id=%s", admin.username, item_id)
 
     return CurationActionResponse(
         success=True,
@@ -88,16 +87,17 @@ async def approve_item(
 async def reject_item(
     item_id: str,
     ml: MLService = Depends(get_ml_service),
+    admin: User = Depends(require_admin),
 ):
     """
-    Reject a curation item (remove from queue without training).
+    Reject a curation item. Admin only.
     """
     result = ml.reject_curation_item(item_id)
 
     if result is None:
         raise HTTPException(status_code=404, detail=f"Curation item '{item_id}' not found.")
 
-    logger.info("Curation item rejected via API: id=%s", item_id)
+    logger.info("Curation item rejected by %s: id=%s", admin.username, item_id)
 
     return CurationActionResponse(
         success=True,
@@ -111,12 +111,10 @@ async def edit_and_approve_item(
     item_id: str,
     body: CurationActionRequest,
     ml: MLService = Depends(get_ml_service),
+    admin: User = Depends(require_admin),
 ):
     """
-    Edit the correction text and approve the item.
-
-    The edited correction replaces the teacher-generated one in both
-    the curation record and the training dataset.
+    Edit the correction text and approve the item. Admin only.
     """
     if not body.edited_correction or not body.edited_correction.strip():
         raise HTTPException(
@@ -129,7 +127,7 @@ async def edit_and_approve_item(
     if result is None:
         raise HTTPException(status_code=404, detail=f"Curation item '{item_id}' not found.")
 
-    logger.info("Curation item edited & approved via API: id=%s", item_id)
+    logger.info("Curation item edited & approved by %s: id=%s", admin.username, item_id)
 
     return CurationActionResponse(
         success=True,
@@ -141,9 +139,10 @@ async def edit_and_approve_item(
 @router.get("/stats", response_model=CurationStatsResponse)
 async def get_curation_stats(
     ml: MLService = Depends(get_ml_service),
+    admin: User = Depends(require_admin),
 ):
     """
-    Get curation queue statistics (pending, approved, rejected counts).
+    Get curation queue statistics. Admin only.
     """
     stats = ml.get_curation_stats()
     return CurationStatsResponse(**stats)

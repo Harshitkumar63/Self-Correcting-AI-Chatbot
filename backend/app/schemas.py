@@ -1,11 +1,62 @@
 """
 Pydantic schemas for request/response validation.
+
+Includes input sanitization validators to strip HTML/script tags.
 """
 
+import re
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+# ── Sanitization Helpers ────────────────────────────────────
+
+def _sanitize_text(text: str) -> str:
+    """Strip HTML tags and script content from text input."""
+    # Remove script tags and their content
+    text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.DOTALL | re.IGNORECASE)
+    # Remove all HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    # Normalize whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
+# ── Auth ────────────────────────────────────────────────────
+
+
+class LoginRequest(BaseModel):
+    """Login credentials."""
+    username: str = Field(..., min_length=1, max_length=100)
+    password: str = Field(..., min_length=1, max_length=200)
+
+
+class TokenResponse(BaseModel):
+    """JWT token response."""
+    access_token: str
+    token_type: str = "bearer"
+    role: str
+    username: str
+
+
+class UserCreate(BaseModel):
+    """Request to create a new user (admin only)."""
+    username: str = Field(..., min_length=3, max_length=100)
+    password: str = Field(..., min_length=6, max_length=200)
+    role: str = Field(default="user", pattern="^(admin|user)$")
+
+
+class UserResponse(BaseModel):
+    """User profile response."""
+    id: int
+    username: str
+    role: str
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 
 # ── Chat ────────────────────────────────────────────────────
@@ -17,6 +68,15 @@ class ChatRequest(BaseModel):
     query: str = Field(
         ..., min_length=1, max_length=2000, description="The user's query"
     )
+    conversation_id: Optional[int] = Field(
+        None, description="Optional conversation ID for context"
+    )
+
+    @field_validator('query')
+    @classmethod
+    def sanitize_query(cls, v: str) -> str:
+        """Strip HTML/script tags from user input."""
+        return _sanitize_text(v)
 
 
 class ChatResponse(BaseModel):
@@ -27,14 +87,50 @@ class ChatResponse(BaseModel):
     evaluation_status: str  # "Passed" | "Flagged"
     ground_truth: str
     matched_query: str
-    feedback_status: Optional[dict] = None  # feedback collection info
+    feedback_status: Optional[dict] = None
+    conversation_id: Optional[int] = None
 
-    # ── New hybrid evaluator fields ────────────────────────
+    # Hybrid evaluator fields
     hybrid_score: float = 0.0
     llm_judge_score: float = 0.0
     hallucination_detected: bool = False
     completeness: int = 3
     teacher_correction: Optional[str] = None
+
+
+# ── Conversations ───────────────────────────────────────────
+
+
+class ConversationCreate(BaseModel):
+    """Request to create a new conversation."""
+    title: Optional[str] = Field(None, max_length=200)
+
+
+class ConversationResponse(BaseModel):
+    """Single conversation with message count."""
+    id: int
+    title: str
+    user_id: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    message_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationListResponse(BaseModel):
+    """List of conversations."""
+    conversations: list[ConversationResponse]
+    total: int
+
+
+class ConversationDetailResponse(BaseModel):
+    """Conversation with full message history."""
+    id: int
+    title: str
+    messages: list[dict]
+    created_at: Optional[str] = None
 
 
 # ── Logs ────────────────────────────────────────────────────
@@ -50,6 +146,10 @@ class LogEntry(BaseModel):
     evaluation_status: str
     ground_truth_used: Optional[str] = None
     matched_query: Optional[str] = None
+    hybrid_score: Optional[float] = None
+    llm_judge_score: Optional[float] = None
+    hallucination_detected: Optional[bool] = None
+    completeness: Optional[int] = None
     created_at: Optional[str] = None
 
     class Config:
@@ -75,7 +175,14 @@ class StatsResponse(BaseModel):
     passed_count: int
     training_queue_size: int
     training_queue_threshold: int
-    training_queue_progress: float  # percentage
+    training_queue_progress: float
+
+
+class ChartDataResponse(BaseModel):
+    """Data for analytics charts."""
+    score_distribution: list[dict]
+    trend_data: list[dict]
+    status_breakdown: dict
 
 
 # ── Tuning ──────────────────────────────────────────────────
@@ -85,7 +192,7 @@ class TuningResponse(BaseModel):
     """Response from the training trigger endpoint."""
 
     message: str
-    training_status: str  # "idle" | "preparing" | "training" | "completed" | "failed"
+    training_status: str
     samples_count: int
     threshold: int
     training_triggered: bool
@@ -126,6 +233,14 @@ class CurationActionRequest(BaseModel):
         None, description="Edited correction text (optional, for edit-and-approve)"
     )
 
+    @field_validator('edited_correction')
+    @classmethod
+    def sanitize_correction(cls, v: Optional[str]) -> Optional[str]:
+        """Strip HTML/script tags from edited corrections."""
+        if v is not None:
+            return _sanitize_text(v)
+        return v
+
 
 class CurationActionResponse(BaseModel):
     """Response from a curation action."""
@@ -142,3 +257,18 @@ class CurationStatsResponse(BaseModel):
     pending: int
     approved: int
     rejected: int
+
+
+# ── Ground Truth Management ─────────────────────────────────
+
+
+class GroundTruthEntry(BaseModel):
+    """A single ground truth Q&A pair."""
+    query: str = Field(..., min_length=1, max_length=2000)
+    answer: str = Field(..., min_length=1, max_length=5000)
+
+
+class GroundTruthListResponse(BaseModel):
+    """List of all ground truth entries."""
+    entries: list[GroundTruthEntry]
+    total: int

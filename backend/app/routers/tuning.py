@@ -1,32 +1,35 @@
 """
-Tuning Router — POST /api/trigger-tuning, GET /api/tuning-status
+Tuning Router — POST /api/v1/trigger-tuning, GET /api/v1/tuning-status
 
 Handles manual and automatic triggering of LoRA fine-tuning,
-and reports training status.
+and reports training status. Trigger requires admin role.
 """
 
 import logging
 
 from fastapi import APIRouter, BackgroundTasks, Depends
 
+from app.models import User
 from app.schemas import TuningResponse
+from app.services.auth_service import require_admin
 from app.services.ml_service import MLService, get_ml_service
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api", tags=["tuning"])
+router = APIRouter(prefix="/api/v1", tags=["tuning"])
 
 
 @router.post("/trigger-tuning", response_model=TuningResponse)
 async def trigger_tuning(
     background_tasks: BackgroundTasks,
     ml: MLService = Depends(get_ml_service),
+    admin: User = Depends(require_admin),
 ):
     """
-    Manually trigger a LoRA fine-tuning run.
+    Manually trigger a LoRA fine-tuning run. Admin only.
 
     The training runs as a background task so the API responds
-    immediately. Check /api/tuning-status for progress.
+    immediately. Check /api/v1/tuning-status for progress.
     """
     feedback_status = ml.get_feedback_status()
     sample_count = feedback_status["sample_count"]
@@ -43,6 +46,8 @@ async def trigger_tuning(
 
     # Run training in background
     background_tasks.add_task(ml.trigger_training)
+
+    logger.info("Training triggered by admin: %s (%d samples)", admin.username, sample_count)
 
     return TuningResponse(
         message=f"Fine-tuning triggered with {sample_count} samples. Training started in background.",

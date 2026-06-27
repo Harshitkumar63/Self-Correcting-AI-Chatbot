@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { sendMessage, ChatResponse } from "@/lib/api";
+import { sendMessage, fetchConversation, ChatResponse } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -26,17 +26,65 @@ interface Message {
 }
 
 interface ChatInterfaceProps {
-  onNewMessage?: () => void; // callback to refresh logs/stats
+  conversationId?: number | null;
+  onNewMessage?: () => void;
+  onConversationCreated?: (id: number) => void;
 }
 
 // ── Component ──────────────────────────────────────────────
 
-export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
+export default function ChatInterface({
+  conversationId,
+  onNewMessage,
+  onConversationCreated,
+}: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load conversation history when conversationId changes
+  useEffect(() => {
+    if (!conversationId) {
+      setMessages([]);
+      return;
+    }
+
+    const loadHistory = async () => {
+      try {
+        const data = await fetchConversation(conversationId);
+        const loaded: Message[] = [];
+        for (const msg of data.messages) {
+          loaded.push({
+            id: `user-${msg.id}`,
+            role: "user",
+            content: msg.user_query,
+            timestamp: new Date(msg.created_at || Date.now()),
+          });
+          loaded.push({
+            id: `assistant-${msg.id}`,
+            role: "assistant",
+            content: msg.llm_response,
+            score: msg.similarity_score,
+            hybridScore: msg.hybrid_score ?? undefined,
+            llmJudgeScore: msg.llm_judge_score ?? undefined,
+            status: msg.evaluation_status as "Passed" | "Flagged",
+            hallucinationDetected: msg.hallucination_detected ?? undefined,
+            completeness: msg.completeness ?? undefined,
+            teacherCorrection: msg.teacher_correction ?? undefined,
+            timestamp: new Date(msg.created_at || Date.now()),
+          });
+        }
+        setMessages(loaded);
+      } catch {
+        // Conversation might not exist yet
+        setMessages([]);
+      }
+    };
+
+    loadHistory();
+  }, [conversationId]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -61,7 +109,12 @@ export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
     setIsLoading(true);
 
     try {
-      const data: ChatResponse = await sendMessage(query);
+      const data: ChatResponse = await sendMessage(query, conversationId ?? undefined);
+
+      // If a new conversation was created, notify parent
+      if (!conversationId && data.conversation_id) {
+        onConversationCreated?.(data.conversation_id);
+      }
 
       const assistantMsg: Message = {
         id: `assistant-${Date.now()}`,
@@ -91,7 +144,7 @@ export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
       setIsLoading(false);
       inputRef.current?.focus();
     }
-  }, [input, isLoading, onNewMessage]);
+  }, [input, isLoading, conversationId, onNewMessage, onConversationCreated]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -207,7 +260,7 @@ export default function ChatInterface({ onNewMessage }: ChatInterfaceProps) {
                     </div>
                   )}
 
-                  {/* Fallback: show ground truth if no teacher correction available */}
+                  {/* Fallback: show ground truth if no teacher correction */}
                   {msg.role === "assistant" && msg.status === "Flagged" && !msg.teacherCorrection && msg.groundTruth && (
                     <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
                       <p className="text-xs font-semibold text-emerald-400 mb-1">

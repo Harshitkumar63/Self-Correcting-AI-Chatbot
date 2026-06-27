@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { fetchLogs, LogEntry } from "@/lib/api";
+import { fetchLogs, exportLogs, LogEntry } from "@/lib/api";
 
 // ── Props ──────────────────────────────────────────────────
 
@@ -55,6 +55,22 @@ export default function EvaluationMonitor({
     return () => clearInterval(interval);
   }, [loadLogs, page]);
 
+  const handleExport = async (format: "json" | "csv") => {
+    try {
+      const blob = await exportLogs(format);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `interaction_logs.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Export failed
+    }
+  };
+
   const truncate = (text: string, maxLen: number = 50) =>
     text.length > maxLen ? text.slice(0, maxLen) + "…" : text;
 
@@ -74,8 +90,31 @@ export default function EvaluationMonitor({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] text-muted-foreground">Live</span>
+            {/* Export Buttons */}
+            <Button
+              id="export-csv-btn"
+              variant="outline"
+              size="sm"
+              onClick={() => handleExport("csv")}
+              className="text-[10px] h-7 px-2 border-border/30"
+              title="Export as CSV"
+            >
+              📄 CSV
+            </Button>
+            <Button
+              id="export-json-btn"
+              variant="outline"
+              size="sm"
+              onClick={() => handleExport("json")}
+              className="text-[10px] h-7 px-2 border-border/30"
+              title="Export as JSON"
+            >
+              📋 JSON
+            </Button>
+            <div className="flex items-center gap-1.5 ml-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[11px] text-muted-foreground">Live</span>
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -93,16 +132,19 @@ export default function EvaluationMonitor({
             <Table>
               <TableHeader>
                 <TableRow className="border-border/30 hover:bg-transparent">
-                  <TableHead className="text-[11px] font-semibold text-muted-foreground w-[30%] px-3">
+                  <TableHead className="text-[11px] font-semibold text-muted-foreground w-[28%] px-3">
                     User Query
                   </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-muted-foreground w-[38%] px-3">
+                  <TableHead className="text-[11px] font-semibold text-muted-foreground w-[32%] px-3">
                     LLM Output
                   </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-muted-foreground text-center w-[14%] px-2">
-                    Score
+                  <TableHead className="text-[11px] font-semibold text-muted-foreground text-center w-[12%] px-2">
+                    Cosine
                   </TableHead>
-                  <TableHead className="text-[11px] font-semibold text-muted-foreground text-center w-[18%] px-2">
+                  <TableHead className="text-[11px] font-semibold text-muted-foreground text-center w-[12%] px-2">
+                    Hybrid
+                  </TableHead>
+                  <TableHead className="text-[11px] font-semibold text-muted-foreground text-center w-[16%] px-2">
                     Status
                   </TableHead>
                 </TableRow>
@@ -111,7 +153,7 @@ export default function EvaluationMonitor({
                 {loading && logs.length === 0
                   ? Array.from({ length: 3 }).map((_, i) => (
                       <TableRow key={`skeleton-${i}`} className="border-border/20">
-                        <TableCell colSpan={4}>
+                        <TableCell colSpan={5}>
                           <div className="h-4 rounded animate-shimmer" />
                         </TableCell>
                       </TableRow>
@@ -126,22 +168,30 @@ export default function EvaluationMonitor({
                           {truncate(log.user_query)}
                         </TableCell>
                         <TableCell className="text-[11px] text-foreground/70 py-2.5 px-3">
-                          {truncate(log.llm_response, 65)}
+                          {truncate(log.llm_response, 55)}
                         </TableCell>
                         <TableCell className="text-center py-2.5 px-2">
                           <ScoreIndicator score={log.similarity_score} />
                         </TableCell>
                         <TableCell className="text-center py-2.5 px-2">
-                          <Badge
-                            className={`text-[10px] font-medium ${
-                              log.evaluation_status === "Passed"
-                                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
-                                : "bg-red-500/15 text-red-400 border-red-500/25"
-                            }`}
-                            variant="outline"
-                          >
-                            {log.evaluation_status === "Passed" ? "✓ Passed" : "⚠ Flagged"}
-                          </Badge>
+                          <ScoreIndicator score={log.hybrid_score ?? log.similarity_score} />
+                        </TableCell>
+                        <TableCell className="text-center py-2.5 px-2">
+                          <div className="flex flex-col items-center gap-0.5">
+                            <Badge
+                              className={`text-[10px] font-medium ${
+                                log.evaluation_status === "Passed"
+                                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
+                                  : "bg-red-500/15 text-red-400 border-red-500/25"
+                              }`}
+                              variant="outline"
+                            >
+                              {log.evaluation_status === "Passed" ? "✓ Passed" : "⚠ Flagged"}
+                            </Badge>
+                            {log.hallucination_detected && (
+                              <span className="text-[9px] text-red-400/70">⚠ Halluc.</span>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
