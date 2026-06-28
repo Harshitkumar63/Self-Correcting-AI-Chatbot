@@ -1,0 +1,59 @@
+# ══════════════════════════════════════════════════════════════
+# Self-Improving LLM Pipeline — Docker Compose
+# ══════════════════════════════════════════════════════════════
+# Orchestrates the backend (FastAPI) and frontend (Next.js).
+#
+# Usage:
+#   docker compose up --build          # Build & start both services
+#   docker compose up -d               # Run in background
+#   docker compose logs -f backend     # Follow backend logs
+#   docker compose down                # Stop everything
+
+services:
+  # ── Backend (FastAPI + ML Pipeline) ────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: llm-pipeline-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Share the ML pipeline code and data
+      - ./ml_pipeline:/app/ml_pipeline:rw
+      # Persist the database between restarts
+      - backend-data:/app
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///app.db
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
+      - DEFAULT_ADMIN_USERNAME=${DEFAULT_ADMIN_USERNAME:-admin}
+      - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD:-admin123}
+      - INFERENCE_MODEL_ID=${INFERENCE_MODEL_ID:-Qwen/Qwen2.5-0.5B-Instruct}
+      - DEVICE=${DEVICE:-auto}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend (Next.js) ─────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE: http://localhost:8000
+    container_name: llm-pipeline-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_BASE=http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  backend-data:
