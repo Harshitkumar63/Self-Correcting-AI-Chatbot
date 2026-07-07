@@ -602,3 +602,99 @@ export async function deleteGroundTruth(index: number): Promise<void> {
     throw new Error(`Delete ground truth error: ${res.status}`);
   }
 }
+
+// ── Analytics Types ────────────────────────────────────────
+
+export interface LossEntry {
+  step: number;
+  epoch: number;
+  loss: number;
+  learning_rate: number;
+}
+
+export interface TrainingRun {
+  run_id: string;
+  started_at: string;
+  completed_at: string;
+  samples_trained: number;
+  epochs: number;
+  batch_size: number;
+  learning_rate: number;
+  lora_r: number;
+  lora_alpha: number;
+  final_loss: number | null;
+  train_runtime: number | null;
+  loss_history: LossEntry[];
+  adapter_path: string;
+}
+
+export interface TrainingHistoryResponse {
+  runs: TrainingRun[];
+  total_runs: number;
+}
+
+export interface TimelineEntry {
+  date: string;
+  avg_cosine: number;
+  avg_hybrid: number;
+  pass_rate: number;
+  count: number;
+}
+
+export interface ScoreTimelineResponse {
+  timeline: TimelineEntry[];
+  bucket: string;
+}
+
+export interface DistributionEntry {
+  range: string;
+  count: number;
+}
+
+export interface ScoreDistributionResponse {
+  distribution: DistributionEntry[];
+  total: number;
+  avg_score: number;
+}
+
+// ── Analytics API ──────────────────────────────────────────
+
+export async function fetchTrainingHistory(): Promise<TrainingHistoryResponse> {
+  const res = await fetch(`${API_V1}/analytics/training-history`, {
+    headers: authHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Training history error: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function fetchScoreTimeline(
+  days: number = 30,
+  bucket: string = "day"
+): Promise<ScoreTimelineResponse> {
+  const res = await fetch(
+    `${API_V1}/analytics/score-timeline?days=${days}&bucket=${bucket}`,
+    { headers: authHeaders() }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Score timeline error: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function fetchScoreDistribution(): Promise<ScoreDistributionResponse> {
+  const res = await fetch(`${API_V1}/analytics/score-distribution`, {
+    headers: authHeaders(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Score distribution error: ${res.status}`);
+  }
+
+  return res.json();
+}

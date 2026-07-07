@@ -5,13 +5,18 @@ Loads the base Qwen2.5-0.5B model, applies LoRA adapters, and trains
 on the feedback JSONL file using HuggingFace's SFTTrainer.
 """
 
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from ml_pipeline.config import config
+from ml_pipeline.config import config, BASE_DIR
 from ml_pipeline.feedback import FeedbackCollector
+
+# Directory to persist training metrics
+METRICS_DIR = BASE_DIR / "data" / "training_metrics"
+METRICS_DIR.mkdir(parents=True, exist_ok=True)
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +185,7 @@ def run_training(feedback_collector: Optional[FeedbackCollector] = None) -> dict
         training_status.message = f"Training on {sample_count} samples..."
         logger.info("Starting LoRA training...")
 
-        trainer.train()
+        train_result = trainer.train()
 
         # ── Step 7: Save adapter ────────────────────────────────
         training_status.message = "Saving LoRA adapter..."
@@ -189,7 +194,40 @@ def run_training(feedback_collector: Optional[FeedbackCollector] = None) -> dict
 
         logger.info("LoRA adapter saved to %s", output_dir)
 
-        # ── Step 8: Archive dataset ─────────────────────────────
+        # ── Step 8: Save training metrics ───────────────────────
+        loss_history = []
+        if hasattr(trainer.state, "log_history") and trainer.state.log_history:
+            for entry in trainer.state.log_history:
+                if "loss" in entry:
+                    loss_history.append({
+                        "step": entry.get("step", 0),
+                        "epoch": round(entry.get("epoch", 0), 2),
+                        "loss": round(entry["loss"], 4),
+                        "learning_rate": entry.get("learning_rate", 0),
+                    })
+
+        metrics_record = {
+            "run_id": timestamp,
+            "started_at": training_status.started_at,
+            "completed_at": datetime.utcnow().isoformat(),
+            "samples_trained": sample_count,
+            "epochs": config.training_epochs,
+            "batch_size": config.training_batch_size,
+            "learning_rate": config.learning_rate,
+            "lora_r": config.lora_r,
+            "lora_alpha": config.lora_alpha,
+            "final_loss": loss_history[-1]["loss"] if loss_history else None,
+            "train_runtime": getattr(train_result, "metrics", {}).get("train_runtime", None),
+            "loss_history": loss_history,
+            "adapter_path": str(output_dir),
+        }
+
+        metrics_file = METRICS_DIR / f"run_{timestamp}.json"
+        with open(metrics_file, "w") as f:
+            json.dump(metrics_record, f, indent=2)
+        logger.info("Training metrics saved to %s", metrics_file)
+
+        # ── Step 9: Archive dataset ─────────────────────────────
         archive_path = feedback_collector.archive_and_clear()
 
         # ── Done ────────────────────────────────────────────────
@@ -205,6 +243,7 @@ def run_training(feedback_collector: Optional[FeedbackCollector] = None) -> dict
             "samples_trained": sample_count,
             "adapter_path": str(output_dir),
             "archive_path": str(archive_path) if archive_path else None,
+            "final_loss": metrics_record["final_loss"],
         }
 
     except Exception as e:
@@ -219,3 +258,20 @@ def run_training(feedback_collector: Optional[FeedbackCollector] = None) -> dict
 def get_training_status() -> dict:
     """Return the current training status."""
     return training_status.to_dict()
+
+
+def get_all_training_metrics() -> list[dict]:
+    """
+    Load all training run metrics from disk, sorted newest first.
+
+    Returns:
+        List of training run metric dicts.
+    """
+    metrics = []
+    for f in sorted(METRICS_DIR.glob("run_*.json"), reverse=True):
+        try:
+            with open(f, "r") as fp:
+                metrics.append(json.load(fp))
+        except (json.JSONDecodeError, OSError):
+            logger.warning("Skipping corrupt metrics file: %s", f)
+    return metrics

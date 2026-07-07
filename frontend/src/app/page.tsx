@@ -10,6 +10,7 @@ import EvaluationMonitor from "@/components/EvaluationMonitor";
 import FineTuningPanel from "@/components/FineTuningPanel";
 import AdminCurationQueue from "@/components/AdminCurationQueue";
 import ScoreCharts from "@/components/ScoreCharts";
+import PerformanceDashboard from "@/components/PerformanceDashboard";
 import GroundTruthManager from "@/components/GroundTruthManager";
 import ThemeToggle from "@/components/ThemeToggle";
 import { isAuthenticated, isAdmin, getStoredUser, logout } from "@/lib/auth";
@@ -119,6 +120,13 @@ export default function Dashboard() {
             >
               📈 Analytics
             </TabsTrigger>
+            <TabsTrigger
+              value="performance"
+              id="tab-performance"
+              className="data-[state=active]:gradient-primary data-[state=active]:text-primary-foreground px-4 py-1.5 text-xs font-medium"
+            >
+              🏋️ Performance
+            </TabsTrigger>
             {isAdmin() && (
               <TabsTrigger
                 value="curation"
@@ -175,6 +183,11 @@ export default function Dashboard() {
           {/* ── Analytics Tab ───────────────────────────── */}
           <TabsContent value="analytics" className="mt-0">
             <ScoreCharts refreshTrigger={refreshTrigger} />
+          </TabsContent>
+
+          {/* ── Performance Dashboard Tab ────────────────── */}
+          <TabsContent value="performance" className="mt-0">
+            <PerformanceDashboard refreshTrigger={refreshTrigger} />
           </TabsContent>
 
           {/* ── Admin Curation Queue Tab ────────────────── */}

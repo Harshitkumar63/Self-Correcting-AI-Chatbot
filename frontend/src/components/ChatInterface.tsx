@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { sendMessage, fetchConversation, ChatResponse } from "@/lib/api";
+import { sendMessageStream, fetchConversation } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -23,6 +23,7 @@ interface Message {
   hallucinationDetected?: boolean;
   completeness?: number;
   timestamp: Date;
+  isStreaming?: boolean;
 }
 
 interface ChatInterfaceProps {
@@ -46,7 +47,7 @@ export default function ChatInterface({
 
   // Load conversation history when conversationId changes
   useEffect(() => {
-    if (!conversationId) {
+    if (conversationId === null || conversationId === undefined) {
       setMessages([]);
       return;
     }
@@ -104,42 +105,88 @@ export default function ChatInterface({
       content: query,
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, userMsg]);
+
+    const streamingMsgId = `assistant-${Date.now()}`;
+
+    // Add empty assistant message for streaming
+    const streamingMsg: Message = {
+      id: streamingMsgId,
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+      isStreaming: true,
+    };
+
+    setMessages((prev) => [...prev, userMsg, streamingMsg]);
     setInput("");
     setIsLoading(true);
 
     try {
-      const data: ChatResponse = await sendMessage(query, conversationId ?? undefined);
+      await sendMessageStream(
+        query,
+        conversationId ?? undefined,
+        // onToken — append each token to the streaming message
+        (token: string) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === streamingMsgId
+                ? { ...msg, content: msg.content + token }
+                : msg
+            )
+          );
+        },
+        // onEval — update the message with evaluation results
+        (evalData: Record<string, unknown>) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === streamingMsgId
+                ? {
+                    ...msg,
+                    isStreaming: false,
+                    score: evalData.similarity_score as number,
+                    hybridScore: evalData.hybrid_score as number,
+                    llmJudgeScore: evalData.llm_judge_score as number,
+                    status: evalData.evaluation_status as "Passed" | "Flagged",
+                    hallucinationDetected: evalData.hallucination_detected as boolean,
+                    completeness: evalData.completeness as number,
+                  }
+                : msg
+            )
+          );
 
-      // If a new conversation was created, notify parent
-      if (!conversationId && data.conversation_id) {
-        onConversationCreated?.(data.conversation_id);
-      }
-
-      const assistantMsg: Message = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: data.response,
-        score: data.similarity_score,
-        hybridScore: data.hybrid_score,
-        llmJudgeScore: data.llm_judge_score,
-        status: data.evaluation_status,
-        groundTruth: data.ground_truth,
-        teacherCorrection: data.teacher_correction ?? undefined,
-        hallucinationDetected: data.hallucination_detected,
-        completeness: data.completeness,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-      onNewMessage?.();
+          // Notify parent about conversation creation
+          if (!conversationId && evalData.conversation_id) {
+            onConversationCreated?.(evalData.conversation_id as number);
+          }
+          onNewMessage?.();
+        },
+        // onError
+        (error: string) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === streamingMsgId
+                ? {
+                    ...msg,
+                    content: `Error: ${error}`,
+                    isStreaming: false,
+                  }
+                : msg
+            )
+          );
+        }
+      );
     } catch (err) {
-      const errorMsg: Message = {
-        id: `error-${Date.now()}`,
-        role: "assistant",
-        content: `Error: ${err instanceof Error ? err.message : "Failed to get response. Is the backend running?"}`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMsg]);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === streamingMsgId
+            ? {
+                ...msg,
+                content: `Error: ${err instanceof Error ? err.message : "Failed to get response. Is the backend running?"}`,
+                isStreaming: false,
+              }
+            : msg
+        )
+      );
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
@@ -163,7 +210,7 @@ export default function ChatInterface({
           <div>
             <CardTitle className="text-lg">Chat Interface</CardTitle>
             <p className="text-xs text-muted-foreground">
-              Interact with the LLM — responses are auto-evaluated
+              Interact with the LLM — responses stream in real-time
             </p>
           </div>
         </div>
@@ -183,6 +230,10 @@ export default function ChatInterface({
                   Send a message to get an LLM response. Each answer is
                   evaluated using hybrid scoring (cosine + LLM judge).
                 </p>
+                <div className="mt-4 flex items-center gap-2 text-xs text-primary/60">
+                  <span className="inline-block h-2 w-2 rounded-full bg-primary/40 animate-pulse" />
+                  Responses stream token-by-token
+                </div>
               </div>
             )}
 
@@ -203,11 +254,15 @@ export default function ChatInterface({
                 >
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">
                     {msg.content}
+                    {/* Streaming cursor */}
+                    {msg.isStreaming && (
+                      <span className="inline-block w-2 h-4 ml-0.5 bg-primary/70 animate-pulse rounded-sm" />
+                    )}
                   </p>
 
                   {/* Evaluation badges for assistant messages */}
-                  {msg.role === "assistant" && msg.hybridScore !== undefined && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/10 pt-2">
+                  {msg.role === "assistant" && msg.hybridScore !== undefined && !msg.isStreaming && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/10 pt-2 animate-fade-in">
                       {/* Status badge */}
                       <Badge
                         className={`text-xs font-medium ${
@@ -274,19 +329,6 @@ export default function ChatInterface({
                 </div>
               </div>
             ))}
-
-            {/* Typing indicator */}
-            {isLoading && (
-              <div className="flex justify-start animate-fade-in">
-                <div className="rounded-2xl bg-secondary/60 px-5 py-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="typing-dot h-2 w-2 rounded-full bg-primary" />
-                    <span className="typing-dot h-2 w-2 rounded-full bg-primary" />
-                    <span className="typing-dot h-2 w-2 rounded-full bg-primary" />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -311,7 +353,11 @@ export default function ChatInterface({
               className="gradient-primary hover:opacity-90 transition-opacity px-6"
             >
               {isLoading ? (
-                <span className="animate-spin">⏳</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-current animate-pulse" style={{ animationDelay: "150ms" }} />
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-current animate-pulse" style={{ animationDelay: "300ms" }} />
+                </span>
               ) : (
                 "Send"
               )}

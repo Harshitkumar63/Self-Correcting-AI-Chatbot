@@ -28,7 +28,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from app.database import init_db, close_db, AsyncSessionLocal
-from app.routers import auth, chat, conversations, curation, ground_truth, logs, tuning
+from app.routers import analytics, auth, chat, conversations, curation, ground_truth, logs, tuning
 from app.services.auth_service import create_default_admin
 from app.services.dataset_monitor import get_dataset_monitor
 
@@ -106,6 +106,7 @@ app.add_middleware(
 
 # ── Routers ─────────────────────────────────────────────────
 
+app.include_router(analytics.router)
 app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(conversations.router)
